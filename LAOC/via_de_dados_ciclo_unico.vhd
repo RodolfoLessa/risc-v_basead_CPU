@@ -44,6 +44,106 @@ architecture comportamento of via_de_dados_ciclo_unico is
 		);
 	end component;
 
+	component memi is
+		generic (
+			INSTR_WIDTH   : natural := 32; -- tamanho da instrução em numero de bits
+			MI_ADDR_WIDTH : natural := 32  -- tamanho do endereço da memoria de instruções em numero de bits
+		);
+		port (
+			clk       : in std_logic;
+			reset     : in std_logic;
+			Endereco  : in std_logic_vector(MI_ADDR_WIDTH - 1 downto 0);
+			Instrucao : out std_logic_vector(INSTR_WIDTH - 1 downto 0)
+		);
+	end component;
+
+	component memd is
+		generic (
+			number_of_words : natural := 512; -- número de words que a sua memória é capaz de armazenar
+			MD_DATA_WIDTH   : natural := 32; -- tamanho da palavra em bits
+			MD_ADDR_WIDTH   : natural := 32 -- tamanho do endereco da memoria de dados em bits
+		);
+		port (
+			clk                 : in std_logic;
+			mem_write, mem_read : in std_logic; --sinais do controlador
+			write_data_mem      : in std_logic_vector(MD_DATA_WIDTH - 1 downto 0);
+			adress_mem          : in std_logic_vector(MD_ADDR_WIDTH - 1 downto 0);
+			read_data_mem       : out std_logic_vector(MD_DATA_WIDTH - 1 downto 0)
+		);
+	end component;
+
+	component deslocador2bits is
+		generic (
+			largura_dado : natural := 32;
+			largura_qtde : natural := 2
+		);
+	
+		port (
+			ent_rs_dado           : in std_logic_vector((largura_dado - 1) downto 0);
+			ent_rt_ende           : in std_logic_vector((largura_qtde - 1) downto 0); -- o campo de endereços de rt, representa a quantidade a ser deslocada nesse contexto.
+			ent_tipo_deslocamento : in std_logic_vector(1 downto 0);
+			sai_rd_dado           : out std_logic_vector((largura_dado - 1) downto 0)
+		);
+	end component;
+
+	component deslocador10bits is
+		generic (
+			largura_dado : natural := 32;
+			largura_qtde : natural := 10
+		);
+	
+		port (
+			ent_rs_dado           : in std_logic_vector((largura_dado - 1) downto 0);
+			ent_rt_ende           : in std_logic_vector((largura_qtde - 1) downto 0); -- o campo de endereços de rt, representa a quantidade a ser deslocada nesse contexto.
+			ent_tipo_deslocamento : in std_logic_vector(1 downto 0);
+			sai_rd_dado           : out std_logic_vector((largura_dado - 1) downto 0)
+		);
+	end component;	
+
+	component extensor is
+		generic (
+			largura_dado  : natural := 32;
+			largura_saida : natural := 32
+		);
+	
+		port (
+			entrada_Rs : in std_logic_vector((largura_dado - 1) downto 0);
+			saida      : out std_logic_vector((largura_saida - 1) downto 0)
+		);
+	end component;
+
+	component mux21 is
+		generic (
+			largura_dado : natural := 32
+		);
+		port (
+			dado_ent_0, dado_ent_1 : in std_logic_vector((largura_dado - 1) downto 0);
+			sele_ent               : in std_logic;
+			dado_sai               : out std_logic_vector((largura_dado - 1) downto 0)
+		);	end component;
+
+	component mux41x32 is
+		generic (
+			largura_dado : natural := 32
+		);
+		port (
+			dado_ent_0, dado_ent_1, dado_ent_2, dado_ent_3 : in std_logic_vector((largura_dado - 1) downto 0);
+			sele_ent                                       : in std_logic_vector(1 downto 0);
+			dado_sai                                       : out std_logic_vector((largura_dado - 1) downto 0)
+		);
+	end component;
+
+	component mux41x5 is
+		generic (
+			largura_dado : natural := 5
+		);
+		port (
+			dado_ent_0, dado_ent_1, dado_ent_2, dado_ent_3 : in std_logic_vector((largura_dado - 1) downto 0);
+			sele_ent                                       : in std_logic_vector(1 downto 0);
+			dado_sai                                       : out std_logic_vector((largura_dado - 1) downto 0)
+		);
+	end component;
+
 	component somador is
 		generic (
 			largura_dado : natural := 32
