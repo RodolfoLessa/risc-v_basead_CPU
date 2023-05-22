@@ -10,12 +10,12 @@ use IEEE.std_logic_1164.all;
 entity via_de_dados_ciclo_unico is
 	generic (
 		-- declare todos os tamanhos dos barramentos (sinais) das portas da sua via_dados_ciclo_unico aqui.
-		dp_ctrl_bus_width : natural; -- tamanho do barramento de controle da via de dados (DP) em bits
-		data_width        : natural; -- tamanho do dado em bits
-		pc_width          : natural; -- tamanho da entrada de endereços da MI ou MP em bits (memi.vhd)
-		fr_addr_width     : natural; -- tamanho da linha de endereços do banco de registradores em bits
-		ula_ctrl_width    : natural; -- tamanho da linha de controle da ULA
-		instr_width       : natural  -- tamanho da instrução em bits
+		dp_ctrl_bus_width : natural := 14; -- tamanho do barramento de controle da via de dados (DP) em bits
+		data_width        : natural := 32; -- tamanho do dado em bits
+		pc_width          : natural := 32; -- tamanho da entrada de endereços da MI ou MP em bits (memi.vhd)
+		fr_addr_width     : natural := 5;  -- tamanho da linha de endereços do banco de registradores em bits
+		ula_ctrl_width    : natural := 3;  -- tamanho da linha de controle da ULA
+		instr_width       : natural := 32  -- tamanho da instrução em bits
 	);
 	port (
 		-- declare todas as portas da sua via_dados_ciclo_unico aqui.
@@ -158,7 +158,7 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	component banco_registradores is
 		generic (
 			largura_dado : natural := 32;
-			largura_ende : natural := 32
+			largura_ende : natural := 5
 		);
 		port (
 			ent_rs_ende : in std_logic_vector((largura_ende - 1) downto 0);
@@ -189,33 +189,98 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	-- Os sinais auxiliares devem ser compatíveis com o mesmo tipo (std_logic, std_logic_vector, etc.) e o mesmo tamanho dos sinais dos portos dos
 	-- componentes onde serão usados.
 	-- Veja os exemplos abaixo:
-	signal aux_read_rs    : std_logic_vector(fr_addr_width - 1 downto 0);
-	signal aux_read_rt    : std_logic_vector(fr_addr_width - 1 downto 0);
+	
+	-- sinais relacionados ao PC
+	signal pc_branch  	  : std_logic_vector(pc_width - 1 downto 0);
+	signal pc_aux	  	  : std_logic_vector(pc_width - 1 downto 0);
+	signal aux_pc_out 	  : std_logic_vector(pc_width - 1 downto 0);
+	signal aux_pc_in	  : std_logic_vector(pc_width - 1 downto 0);
+	signal beq_signal	  : std_logic_vector(pc_width - 1 downto 0);
+	signal jump_signal	  : std_logic_vector(pc_width - 1 downto 0);
+	signal jump_desl	  : std_logic_vector(24 downto 0);	
+
+	-- sinais relacionados ao banco de registradores
+	signal aux_read_rs1   : std_logic_vector(fr_addr_width - 1 downto 0);
+	signal aux_read_rs2   : std_logic_vector(fr_addr_width - 1 downto 0);
 	signal aux_write_rd   : std_logic_vector(fr_addr_width - 1 downto 0);
-	signal aux_data_in    : std_logic_vector(data_width - 1 downto 0);
-	signal aux_data_outrs : std_logic_vector(data_width - 1 downto 0);
-	signal aux_data_outrt : std_logic_vector(data_width - 1 downto 0);
+	signal result     	  : std_logic_vector(data_width - 1 downto 0);
+	signal read_data1 	  : std_logic_vector(data_width - 1 downto 0);
+	signal read_data2 	  : std_logic_vector(data_width - 1 downto 0);
+
+	-- entradas dos registradores destinos no mux destiny 
+	signal rd_9to5     	  : std_logic_vector(data_width - 1 downto 0);
+	signal rd_14to10 	  : std_logic_vector(data_width - 1 downto 0);
+	signal rd_19to15 	  : std_logic_vector(data_width - 1 downto 0);
+	
+	-- sinais relacionados a ALU
+	signal mux_to_alu 	  : std_logic_vector(data_width - 1 downto 0);
+	signal alu_answer 	  : std_logic_vector(data_width - 1 downto 0);
+
+	-- sinais relacionados ao Data Memory
+	signal read_data 	  : std_logic_vector(data_width - 1 downto 0);
+
+	-- sinais relacionados a controladora
 	signal aux_reg_write  : std_logic;
+	signal aux_reg_dest	  : std_logic_vector(1 downto 0);
+	signal aux_aluscr     : std_logic;
+	signal aux_mem_read   : std_logic;
+	signal aux_imm	  	  : std_logic_vector(1 downto 0);
+	signal aux_desl    	  : std_logic;
+	signal aux_branch	  : std_logic;
+	signal aux_mem_write  : std_logic;
+	signal aux_jump   	  : std_logic;
+	signal aux_ula_ctrl	  : std_logic_vector(ula_ctrl_width - 1 downto 0);
 
-	signal aux_ula_ctrl : std_logic_vector(ula_ctrl_width - 1 downto 0);
+	-- sinais relacionados ao imediato
+	signal aux_imm16   	  : std_logic_vector(15 downto 0);
+	signal aux_imm12   	  : std_logic_vector(11 downto 0);
+	signal aux_imm8   	  : std_logic_vector(7 downto 0);
+	signal aux_imm22   	  : std_logic_vector(21 downto 0);
+	signal imm_result  	  : std_logic_vector(data_width downto 0);
+	signal imm_extend	  : std_logic_vector(data_width downto 0);
 
-	signal aux_pc_out  : std_logic_vector(pc_width - 1 downto 0);
-	signal aux_novo_pc : std_logic_vector(pc_width - 1 downto 0);
-	signal aux_we      : std_logic;
+	-- sinais relacionados ao shifter
+	signal shifter10   	  : std_logic_vector(data_width downto 0);
+	signal shifter2  	  : std_logic_vector(data_width downto 0);
+	signal result_shitfer : std_logic_vector(data_width downto 0);
 
 begin
 
 	-- A partir deste comentário faça associações necessárias das entradas declaradas na entidade da sua via_dados_ciclo_unico com
 	-- os sinais que você acabou de definir.
 	-- Veja os exemplos abaixo:
-	aux_read_rs   <= instrucao(7 downto 4);  -- OP OP OP OP RD RD RD RD RS RS RS RS RT RT RT RT
-	aux_read_rt   <= instrucao(3 downto 0);  -- OP OP OP OP RD RD RD RD RS RS RS RS RT RT RT RT
-	aux_write_rd  <= instrucao(11 downto 8); -- OP OP OP OP RD RD RD RD RS RS RS RS RT RT RT RT
-	aux_reg_write <= controle(4);            -- WE RW UL UL UL UL
-	aux_ula_ctrl  <= controle(3 downto 0);   -- WE RW UL UL UL UL
-	aux_we        <= controle(5);            -- WE RW UL UL UL UL
-	saida         <= aux_data_outrt;
-	pc_out        <= aux_pc_out;
+
+	-- sinais relacionados ao PC
+	jump_desl	    <= instrucao(25 downto 0);
+	pc_out          <= aux_pc_out;
+
+	-- sinais relacionados ao banco de registradores
+	aux_read_rs1   	<= instrucao(9 downto 5);
+	aux_read_rs2   	<= instrucao(14 downto 10);
+	saida     	   	<= result;
+
+	-- entradas dos registradores destinos no mux destiny 
+	rd_9to5        	<= instrucao(9 downto 5);
+	rd_14to10 	   	<= instrucao(14 downto 10);
+	rd_19to15 	   	<= instrucao(19 downto 15);
+	
+	-- sinais relacionados a controladora
+	aux_reg_write  	<= controle(13);
+	aux_reg_dest   	<= controle(12 downto 11);
+	aux_aluscr     	<= controle(10);
+	aux_mem_read   	<= controle(9);
+	aux_imm	  	   	<= controle(8 downto 7);
+	aux_desl       	<= controle(6);
+	aux_branch	   	<= controle(5);
+	aux_mem_write  	<= controle(4);
+	aux_jump   	   	<= controle(3);
+	aux_ula_ctrl   	<= controle(2 to 0);
+
+	-- sinais relacionados ao imediato
+	aux_imm16      	<= instrucao(31 downto 15);
+	aux_imm12      	<= instrucao(31 downto 20);
+	aux_imm8   	   	<= instrucao(31 downto 24);
+	aux_imm22      	<= instrucao(31 downto 10);
 
 	-- A partir deste comentário instancie todos o componentes que serão usados na sua via_de_dados_ciclo_unico.
 	-- A instanciação do componente deve começar com um nome que você deve atribuir para a referida instancia seguido de : e seguido do nome
@@ -228,27 +293,27 @@ begin
 
 	instancia_ula1 : component ula
   		port map(
-			entrada_a => aux_data_outrs,
-			entrada_b => aux_data_outrt,
+			entrada_a => read_data1,
+			entrada_b => read_data2,
 			seletor => aux_ula_ctrl,
-			saida => aux_data_in
+			saida => result
  		);
 
 	instancia_banco_registradores : component banco_registradores
 		port map(
-			ent_rs_ende => aux_read_rs,
-			ent_rt_ende => aux_read_rt,
+			ent_rs_ende => aux_read_rs1,
+			ent_rt_ende => aux_read_rs2,
 			ent_rd_ende => aux_write_rd,
-			ent_rd_dado => aux_data_in,
-			sai_rs_dado => aux_data_outrs,
-			sai_rt_dado => aux_data_outrt,
+			ent_rd_dado => result,
+			sai_rs_dado => read_data1,
+			sai_rt_dado => read_data2,
 			clk => clock,
 			we => aux_reg_write
 		);
 
     instancia_pc : component pc
     	port map(
-			entrada => aux_novo_pc,
+			entrada => aux_pc_in,
 			saida => aux_pc_out,
 			clk => clock,
 			we => aux_we,
@@ -259,6 +324,6 @@ begin
         port map(
 			entrada_a => aux_pc_out,
 			entrada_b => "0001",
-			saida => aux_novo_pc
+			saida => aux_pc_in
         );
 end architecture comportamento;
