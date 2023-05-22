@@ -10,7 +10,7 @@ use IEEE.std_logic_1164.all;
 entity via_de_dados_ciclo_unico is
 	generic (
 		-- declare todos os tamanhos dos barramentos (sinais) das portas da sua via_dados_ciclo_unico aqui.
-		dp_ctrl_bus_width : natural := 14; -- tamanho do barramento de controle da via de dados (DP) em bits
+		dp_ctrl_bus_width : natural := 18; -- tamanho do barramento de controle da via de dados (DP) em bits
 		data_width        : natural := 32; -- tamanho do dado em bits
 		pc_width          : natural := 32; -- tamanho da entrada de endereços da MI ou MP em bits (memi.vhd)
 		fr_addr_width     : natural := 5;  -- tamanho da linha de endereços do banco de registradores em bits
@@ -57,6 +57,14 @@ architecture comportamento of via_de_dados_ciclo_unico is
 		);
 	end component;
 
+	component porta_and is
+		port (
+			entrada_a : in std_logic;
+			entrada_b : in std_logic;
+			saida     : out std_logic
+		);
+	  end component;
+
 	component memd is
 		generic (
 			number_of_words : natural := 512; -- número de words que a sua memória é capaz de armazenar
@@ -72,10 +80,10 @@ architecture comportamento of via_de_dados_ciclo_unico is
 		);
 	end component;
 
-	component deslocador2bits is
+	component deslocador is
 		generic (
-			largura_dado : natural := 32;
-			largura_qtde : natural := 2
+			largura_dado : natural;
+			largura_qtde : natural 
 		);
 	
 		port (
@@ -85,20 +93,6 @@ architecture comportamento of via_de_dados_ciclo_unico is
 			sai_rd_dado           : out std_logic_vector((largura_dado - 1) downto 0)
 		);
 	end component;
-
-	component deslocador10bits is
-		generic (
-			largura_dado : natural := 32;
-			largura_qtde : natural := 10
-		);
-	
-		port (
-			ent_rs_dado           : in std_logic_vector((largura_dado - 1) downto 0);
-			ent_rt_ende           : in std_logic_vector((largura_qtde - 1) downto 0); -- o campo de endereços de rt, representa a quantidade a ser deslocada nesse contexto.
-			ent_tipo_deslocamento : in std_logic_vector(1 downto 0);
-			sai_rd_dado           : out std_logic_vector((largura_dado - 1) downto 0)
-		);
-	end component;	
 
 	component extensor is
 		generic (
@@ -122,20 +116,9 @@ architecture comportamento of via_de_dados_ciclo_unico is
 			dado_sai               : out std_logic_vector((largura_dado - 1) downto 0)
 		);	end component;
 
-	component mux41x32 is
+	component mux41 is
 		generic (
 			largura_dado : natural := 32
-		);
-		port (
-			dado_ent_0, dado_ent_1, dado_ent_2, dado_ent_3 : in std_logic_vector((largura_dado - 1) downto 0);
-			sele_ent                                       : in std_logic_vector(1 downto 0);
-			dado_sai                                       : out std_logic_vector((largura_dado - 1) downto 0)
-		);
-	end component;
-
-	component mux41x5 is
-		generic (
-			largura_dado : natural := 5
 		);
 		port (
 			dado_ent_0, dado_ent_1, dado_ent_2, dado_ent_3 : in std_logic_vector((largura_dado - 1) downto 0);
@@ -197,7 +180,8 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	signal aux_pc_in	  : std_logic_vector(pc_width - 1 downto 0);
 	signal beq_signal	  : std_logic_vector(pc_width - 1 downto 0);
 	signal jump_signal	  : std_logic_vector(pc_width - 1 downto 0);
-	signal jump_desl	  : std_logic_vector(24 downto 0);	
+	signal jump_desl	  : std_logic_vector(24 downto 0);
+	signal branch_result  : std_logic;
 
 	-- sinais relacionados ao banco de registradores
 	signal aux_read_rs1   : std_logic_vector(fr_addr_width - 1 downto 0);
@@ -220,9 +204,12 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	signal read_data 	  : std_logic_vector(data_width - 1 downto 0);
 
 	-- sinais relacionados a controladora
+	signal aux_shifter	  : std_logic_vector(1 downto 0);
+	signal aux_mem_to_reg : std_logic;
+	signal aux_we      	  : std_logic;
 	signal aux_reg_write  : std_logic;
 	signal aux_reg_dest	  : std_logic_vector(1 downto 0);
-	signal aux_aluscr     : std_logic;
+	signal aux_alu_scr    : std_logic;
 	signal aux_mem_read   : std_logic;
 	signal aux_imm	  	  : std_logic_vector(1 downto 0);
 	signal aux_desl    	  : std_logic;
@@ -265,9 +252,12 @@ begin
 	rd_19to15 	   	<= instrucao(19 downto 15);
 	
 	-- sinais relacionados a controladora
+	aux_shifter		<= controle(17 downto 16);
+	aux_mem_to_reg  <= controle(15);
+	aux_we 			<= controle(14);
 	aux_reg_write  	<= controle(13);
 	aux_reg_dest   	<= controle(12 downto 11);
-	aux_aluscr     	<= controle(10);
+	aux_alu_scr     	<= controle(10);
 	aux_mem_read   	<= controle(9);
 	aux_imm	  	   	<= controle(8 downto 7);
 	aux_desl       	<= controle(6);
@@ -291,14 +281,66 @@ begin
 	-- ou ainda uma das saídas da entidade via_de_dados_ciclo_unico.
 	-- Veja os exemplos de instanciação a seguir:
 
-	instancia_ula1 : component ula
-  		port map(
-			entrada_a => read_data1,
-			entrada_b => read_data2,
-			seletor => aux_ula_ctrl,
-			saida => result
- 		);
+	-- instâncias relacionadas ao pc
+	instancia_mux_branch: component mux21
+		generic map(
+			largura_dado => 32
+		)
+		port map(
+			dado_ent_0 	=> pc_branch, 
+			dado_ent_1 	=> beq_signal,
+			sele_ent	=> branch_result,            
+			dado_sai    => pc_aux
+		);
 
+	instancia_mux_jump: component mux21
+		generic map (
+			largura_dado => 32
+		)
+		port map (
+			dado_ent_0 	=> pc_aux, 
+			dado_ent_1 	=> jump_signal,
+			sele_ent	=> aux_jump,            
+			dado_sai    => aux_pc_in
+		);
+
+	instancia_pc : component pc
+		port map(
+			entrada 	=> aux_pc_in,
+			saida 		=> aux_pc_out,
+			clk 		=> clock,
+			we 			=> aux_we,
+			reset 		=> reset
+			);
+
+	instancia_somador : component somador
+		port map(
+			entrada_a => aux_pc_out,
+			entrada_b => "0001",
+			saida => beq_signal
+		);
+	
+	instancia_mem_instruction: component memi
+		port map (
+			clk       	=> clock,
+			reset     	=> reset,
+			Endereco  	=> aux_pc_out,
+			Instrucao 	=> instrucao
+		);
+	
+	instancia_shifter_jump: component deslocador
+		generic map (
+			largura_dado 	=> 32,
+			largura_qtde 	=> 32
+		)
+		port map (
+			ent_rs_dado 	     	=> jump_desl,
+			ent_rt_ende    		 	=> "0010",
+			ent_tipo_deslocamento	=> "01",
+			sai_rd_dado           	=> jump_signal
+		);		
+
+	-- instâncias relacionadas ao banco de registradores
 	instancia_banco_registradores : component banco_registradores
 		port map(
 			ent_rs_ende => aux_read_rs1,
@@ -307,23 +349,116 @@ begin
 			ent_rd_dado => result,
 			sai_rs_dado => read_data1,
 			sai_rt_dado => read_data2,
-			clk => clock,
-			we => aux_reg_write
+			clk 		=> clock,
+			we 			=> aux_reg_write
 		);
 
-    instancia_pc : component pc
-    	port map(
-			entrada => aux_pc_in,
-			saida => aux_pc_out,
-			clk => clock,
-			we => aux_we,
-			reset => reset
-      	);
+	mux_register_destiny: component mux41
+		generic map (
+			largura_dado => 5
+		)
+		port map (
+			dado_ent_0	=> rd_9to5,
+			dado_ent_1	=> rd_14to10,
+			dado_ent_2	=> rd_19to15, 
+			dado_ent_3	=> open,
+			sele_ent	=> aux_reg_dest,                                      
+			dado_sai    => aux_write_rd                            
+		);
+	
+	-- instâncias relacionadas aos imediatos
+	instancia_mux_immediate: component mux41
+		generic map (
+			largura_dado => 32
+		)
+		port map (
+			dado_ent_0	=> aux_imm8,
+			dado_ent_1	=> aux_imm12,
+			dado_ent_2	=> aux_imm16, 
+			dado_ent_3	=> aux_imm22,
+			sele_ent	=> aux_imm,                                      
+			dado_sai    => imm_result       
+		);
+	
+	instancia_extensor: component extensor
+		port map (
+			entrada_Rs 	=> imm_result,
+			saida      	=> imm_extend			
+		);
+	
+	-- instancias relacionadas a ULA
+	instancia_mux_ula: component mux21
+		generic map(
+			largura_dado => 32
+		)
+		port map(
+			dado_ent_0 	=> read_data2, 
+			dado_ent_1 	=> imm_extend,
+			sele_ent	=> aux_alu_scr,            
+			dado_sai    => mux_to_alu
+		);
+	
+	instancia_ula : component ula
+  		port map(
+			entrada_a => read_data1,
+			entrada_b => read_data2,
+			seletor => aux_ula_ctrl,
+			saida => alu_answer
+ 		);
+	
+	instancia_AND: component porta_and
+		port map (
+			entrada_a => aux_branch,
+			entrada_b => alu_answer(0),
+			saida     => branch_result
+		);
+	
+	-- instâncias relacionadas ao Data Memory
+	instancia_data_memory: component memd
+		port map (
+			clk 			=> clock,               
+			mem_write		=> aux_mem_write, 
+			mem_read		=> aux_mem_read,
+			write_data_mem  => read_data2,   
+			adress_mem      => alu_answer,
+			read_data_mem   => read_data
+			
+		);
+	
+	instancia_mux_result: component mux21
+		generic map (
+			largura_dado => 32
+		)
+		port map (
+			dado_ent_0 	=> alu_answer, 
+			dado_ent_1 	=> read_data,
+			sele_ent	=> aux_mem_to_reg,            
+			dado_sai    => result	
+		);
+	
+	-- instâncias relacionadas aos shifters
+	instancia_shifter_10: component deslocador
+		generic map (
+			largura_dado 	=> 32,
+			largura_qtde 	=> 32
+		)
+		port map (
+			ent_rs_dado 	     	=> imm_extend,
+			ent_rt_ende    		 	=> "1010",
+			ent_tipo_deslocamento	=> "01",
+			sai_rd_dado           	=> shifter10
+		);
 
-    instancia_somador : component somador
-        port map(
-			entrada_a => aux_pc_out,
-			entrada_b => "0001",
-			saida => aux_pc_in
-        );
+	instancia_shifter_2: component deslocador
+		generic map (
+			largura_dado 	=> 32,
+			largura_qtde 	=> 32
+		)
+		port map (
+			ent_rs_dado 	     	=> imm_extend,
+			ent_rt_ende    		 	=> "0010",
+			ent_tipo_deslocamento	=> "01",
+			sai_rd_dado           	=> shifter2
+		);	
+
 end architecture comportamento;
