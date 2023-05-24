@@ -82,8 +82,8 @@ architecture comportamento of via_de_dados_ciclo_unico is
 
 	component deslocador is
 		generic (
-			largura_dado : natural;
-			largura_qtde : natural 
+			largura_dado : natural := 32;
+			largura_qtde : natural := 32
 		);
 	
 		port (
@@ -94,10 +94,46 @@ architecture comportamento of via_de_dados_ciclo_unico is
 		);
 	end component;
 
-	component extensor is
+	component extensor8 is
 		generic (
-			largura_dado  : natural := 32;
-			largura_saida : natural := 32
+			largura_dado  : natural := 8;
+			largura_saida : natural := 32 
+		);
+	
+		port (
+			entrada_Rs : in std_logic_vector((largura_dado - 1) downto 0);
+			saida      : out std_logic_vector((largura_saida - 1) downto 0)
+		);
+	end component;
+
+	component extensor12 is
+		generic (
+			largura_dado  : natural := 12;
+			largura_saida : natural := 32 
+		);
+	
+		port (
+			entrada_Rs : in std_logic_vector((largura_dado - 1) downto 0);
+			saida      : out std_logic_vector((largura_saida - 1) downto 0)
+		);
+	end component;
+
+	component extensor16 is
+		generic (
+			largura_dado  : natural := 16;
+			largura_saida : natural := 32 
+		);
+	
+		port (
+			entrada_Rs : in std_logic_vector((largura_dado - 1) downto 0);
+			saida      : out std_logic_vector((largura_saida - 1) downto 0)
+		);
+	end component;
+
+	component extensor22 is
+		generic (
+			largura_dado  : natural := 22;
+			largura_saida : natural := 32 
 		);
 	
 		port (
@@ -223,8 +259,11 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	signal aux_imm12   	  : std_logic_vector(11 downto 0);
 	signal aux_imm8   	  : std_logic_vector(7 downto 0);
 	signal aux_imm22   	  : std_logic_vector(21 downto 0);
+	signal ext_imm16	  : std_logic_vector(data_width downto 0);
+	signal ext_imm12	  : std_logic_vector(data_width downto 0);
+	signal ext_imm8 	  : std_logic_vector(data_width downto 0);
+	signal ext_imm22	  : std_logic_vector(data_width downto 0);
 	signal imm_result  	  : std_logic_vector(data_width downto 0);
-	signal imm_extend	  : std_logic_vector(data_width downto 0);
 
 	-- sinais relacionados ao shifter
 	signal shifter10   	  : std_logic_vector(data_width downto 0);
@@ -257,7 +296,7 @@ begin
 	aux_we 			<= controle(14);
 	aux_reg_write  	<= controle(13);
 	aux_reg_dest   	<= controle(12 downto 11);
-	aux_alu_scr     	<= controle(10);
+	aux_alu_scr     <= controle(10);
 	aux_mem_read   	<= controle(9);
 	aux_imm	  	   	<= controle(8 downto 7);
 	aux_desl       	<= controle(6);
@@ -372,18 +411,36 @@ begin
 			largura_dado => 32
 		)
 		port map (
-			dado_ent_0	=> aux_imm8,
-			dado_ent_1	=> aux_imm12,
-			dado_ent_2	=> aux_imm16, 
-			dado_ent_3	=> aux_imm22,
+			dado_ent_0	=> ext_imm8,
+			dado_ent_1	=> ext_imm12,
+			dado_ent_2	=> ext_imm16, 
+			dado_ent_3	=> ext_imm22,
 			sele_ent	=> aux_imm,                                      
 			dado_sai    => imm_result       
 		);
 	
-	instancia_extensor: component extensor
+	instancia_extensor8: component extensor8
 		port map (
-			entrada_Rs 	=> imm_result,
-			saida      	=> imm_extend			
+			entrada_Rs 	=> aux_imm8,
+			saida      	=> ext_imm8			
+		);
+	
+	instancia_extensor12: component extensor12
+		port map (
+			entrada_Rs 	=> aux_imm12,
+			saida      	=> ext_imm12			
+		);
+
+	instancia_extensor16: component extensor16
+		port map (
+			entrada_Rs 	=> aux_imm16,
+			saida      	=> ext_imm16			
+		);
+
+	instancia_extensor22: component extensor22
+		port map (
+			entrada_Rs 	=> aux_imm22,
+			saida      	=> ext_imm22			
 		);
 	
 	-- instancias relacionadas a ULA
@@ -393,7 +450,7 @@ begin
 		)
 		port map(
 			dado_ent_0 	=> read_data2, 
-			dado_ent_1 	=> imm_extend,
+			dado_ent_1 	=> imm_result,
 			sele_ent	=> aux_alu_scr,            
 			dado_sai    => mux_to_alu
 		);
@@ -443,7 +500,7 @@ begin
 			largura_qtde 	=> 32
 		)
 		port map (
-			ent_rs_dado 	     	=> imm_extend,
+			ent_rs_dado 	     	=> imm_result,
 			ent_rt_ende    		 	=> "1010",
 			ent_tipo_deslocamento	=> "01",
 			sai_rd_dado           	=> shifter10
@@ -455,7 +512,7 @@ begin
 			largura_qtde 	=> 32
 		)
 		port map (
-			ent_rs_dado 	     	=> imm_extend,
+			ent_rs_dado 	     	=> imm_result,
 			ent_rt_ende    		 	=> "0010",
 			ent_tipo_deslocamento	=> "01",
 			sai_rd_dado           	=> shifter2
