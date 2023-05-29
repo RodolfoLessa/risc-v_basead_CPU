@@ -57,7 +57,7 @@ architecture comportamento of via_de_dados_ciclo_unico is
 		);
 	end component;
 
-	component porta_and is
+	component porta_and_not is
 		port (
 			entrada_a : in std_logic;
 			entrada_b : in std_logic;
@@ -82,8 +82,8 @@ architecture comportamento of via_de_dados_ciclo_unico is
 
 	component deslocador is
 		generic (
-			largura_dado : natural;
-			largura_qtde : natural 
+			largura_dado : natural := 32;
+			largura_qtde : natural := 32
 		);
 	
 		port (
@@ -155,6 +155,15 @@ architecture comportamento of via_de_dados_ciclo_unico is
 		);
 	end component;
 
+	component comparador is
+		port (
+			entrada_a : in std_logic_vector(31 downto 0);
+			entrada_b : in std_logic_vector(31 downto 0);
+			controle : in std_logic_vector(1 downto 0);
+			saida : out std_logic_vector(0 downto 0)
+		  );
+	end component;
+
 	component ula is
 		generic (
 			largura_dado : natural := 32
@@ -174,20 +183,22 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	-- Veja os exemplos abaixo:
 	
 	-- sinais relacionados ao PC
-	signal pc_branch  	  : std_logic_vector(pc_width - 1 downto 0);
-	signal pc_aux	  	  : std_logic_vector(pc_width - 1 downto 0);
-	signal aux_pc_out 	  : std_logic_vector(pc_width - 1 downto 0);
-	signal aux_pc_in	  : std_logic_vector(pc_width - 1 downto 0);
-	signal beq_signal	  : std_logic_vector(pc_width - 1 downto 0);
-	signal jump_signal	  : std_logic_vector(pc_width - 1 downto 0);
-	signal jump_desl	  : std_logic_vector(24 downto 0);
-	signal branch_result  : std_logic;
+	signal pc_sum  	  		: std_logic_vector(pc_width - 1 downto 0);
+	signal pc_aux	  	  	: std_logic_vector(pc_width - 1 downto 0);
+	signal aux_pc_out 	  	: std_logic_vector(pc_width - 1 downto 0);
+	signal aux_pc_in	  	: std_logic_vector(pc_width - 1 downto 0);
+	signal pc_next_address	: std_logic_vector(pc_width - 1 downto 0);
+	signal jump_signal  	: std_logic_vector(pc_width - 1 downto 0);
+	signal jump_signal_aux	: std_logic_vector(25 downto 0);
+	signal jump_desl	  	: std_logic_vector(25 downto 0);
+	signal branch_result  	: std_logic;
 
 	-- sinais relacionados ao banco de registradores
-	signal aux_read_rs1   : std_logic_vector(fr_addr_width - 1 downto 0);
-	signal aux_read_rs2   : std_logic_vector(fr_addr_width - 1 downto 0);
-	signal aux_write_rd   : std_logic_vector(fr_addr_width - 1 downto 0);
+	signal endereco_rs1   : std_logic_vector(fr_addr_width - 1 downto 0);
+	signal endereco_rs2   : std_logic_vector(fr_addr_width - 1 downto 0);
+	signal endereco_rd    : std_logic_vector(fr_addr_width - 1 downto 0);
 	signal result     	  : std_logic_vector(data_width - 1 downto 0);
+	signal aux_result  	  : std_logic_vector(data_width - 1 downto 0);
 	signal read_data1 	  : std_logic_vector(data_width - 1 downto 0);
 	signal read_data2 	  : std_logic_vector(data_width - 1 downto 0);
 
@@ -196,40 +207,49 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	signal rd_14to10 	  : std_logic_vector(data_width - 1 downto 0);
 	signal rd_19to15 	  : std_logic_vector(data_width - 1 downto 0);
 	
-	-- sinais relacionados a ALU
-	signal mux_to_alu 	  : std_logic_vector(data_width - 1 downto 0);
-	signal alu_answer 	  : std_logic_vector(data_width - 1 downto 0);
+	-- sinais relacionados aos blocos de operação
+	signal conteudo_reg2mux   : std_logic_vector(data_width - 1 downto 0);
+	signal slt_answer_extend  : std_logic_vector(data_width - 1 downto 0); 	
+	signal slt_answer		  : std_logic_vector(0 downto 0);
+	signal alu_answer 		  : std_logic_vector(data_width - 1 downto 0);
+	signal shifter_answer 	  : std_logic_vector(data_width - 1 downto 0);
 
 	-- sinais relacionados ao Data Memory
 	signal read_data 	  : std_logic_vector(data_width - 1 downto 0);
 
 	-- sinais relacionados a controladora
-	signal aux_shifter	  : std_logic_vector(1 downto 0);
-	signal aux_mem_to_reg : std_logic;
-	signal aux_we      	  : std_logic;
-	signal aux_reg_write  : std_logic;
-	signal aux_reg_dest	  : std_logic_vector(1 downto 0);
-	signal aux_alu_scr    : std_logic;
-	signal aux_mem_read   : std_logic;
-	signal aux_imm	  	  : std_logic_vector(1 downto 0);
-	signal aux_desl    	  : std_logic;
-	signal aux_branch	  : std_logic;
-	signal aux_mem_write  : std_logic;
-	signal aux_jump   	  : std_logic;
-	signal aux_ula_ctrl	  : std_logic_vector(ula_ctrl_width - 1 downto 0);
+	signal we     : std_logic;
+	signal resp		  : std_logic_vector(1 downto 0);
+	signal imm	  	  : std_logic_vector(1 downto 0);
+	signal jump   	  : std_logic;
+	signal reg_write  : std_logic;
+	signal srl_cnt	  : std_logic_vector(1 downto 0);
+	signal slt_cnt	  : std_logic_vector(1 downto 0);	
+	signal resp_aux	  : std_logic;
+	signal mem_write  : std_logic;
+	signal mem_read   : std_logic;
+	signal branch	  : std_logic;
+	signal alu_ctrl	  : std_logic_vector(ula_ctrl_width - 1 downto 0);
+	signal reg2mux    : std_logic;
+	signal reg_dest	  : std_logic_vector(1 downto 0);
+	signal desl    	  : std_logic;
 
 	-- sinais relacionados ao imediato
-	signal aux_imm16   	  : std_logic_vector(15 downto 0);
-	signal aux_imm12   	  : std_logic_vector(11 downto 0);
-	signal aux_imm8   	  : std_logic_vector(7 downto 0);
-	signal aux_imm22   	  : std_logic_vector(21 downto 0);
-	signal imm_result  	  : std_logic_vector(data_width downto 0);
-	signal imm_extend	  : std_logic_vector(data_width downto 0);
+	signal imm8   	  		  : std_logic_vector(7 downto 0);
+	signal imm8_result   	  : std_logic_vector(data_width downto 0);
+	signal imm12   	  		  : std_logic_vector(11 downto 0);
+	signal imm12_result   	  : std_logic_vector(data_width downto 0);
+	signal imm16   	  		  : std_logic_vector(15 downto 0);
+	signal imm16_result   	  : std_logic_vector(data_width downto 0);
+	signal imm22   	  		  : std_logic_vector(21 downto 0);
+	signal imm22_result   	  : std_logic_vector(data_width downto 0);
+	signal imm_result 		  : std_logic_vector(data_width downto 0);
+	
 
 	-- sinais relacionados ao shifter
 	signal shifter10   	  : std_logic_vector(data_width downto 0);
 	signal shifter2  	  : std_logic_vector(data_width downto 0);
-	signal result_shitfer : std_logic_vector(data_width downto 0);
+	signal shifter_pc     : std_logic_vector(data_width downto 0);
 
 begin
 
@@ -242,9 +262,9 @@ begin
 	pc_out          <= aux_pc_out;
 
 	-- sinais relacionados ao banco de registradores
-	aux_read_rs1   	<= instrucao(9 downto 5);
-	aux_read_rs2   	<= instrucao(14 downto 10);
-	saida     	   	<= result;
+	endereco_rs1   	<= instrucao(9 downto 5);
+	endereco_rs2   	<= instrucao(14 downto 10);
+	saida     	   	<= aux_result;
 
 	-- entradas dos registradores destinos no mux destiny 
 	rd_9to5        	<= instrucao(9 downto 5);
@@ -252,25 +272,27 @@ begin
 	rd_19to15 	   	<= instrucao(19 downto 15);
 	
 	-- sinais relacionados a controladora
-	aux_shifter		<= controle(17 downto 16);
-	aux_mem_to_reg  <= controle(15);
-	aux_we 			<= controle(14);
-	aux_reg_write  	<= controle(13);
-	aux_reg_dest   	<= controle(12 downto 11);
-	aux_alu_scr     	<= controle(10);
-	aux_mem_read   	<= controle(9);
-	aux_imm	  	   	<= controle(8 downto 7);
-	aux_desl       	<= controle(6);
-	aux_branch	   	<= controle(5);
-	aux_mem_write  	<= controle(4);
-	aux_jump   	   	<= controle(3);
-	aux_ula_ctrl   	<= controle(2 to 0);
+	we 			<= controle(21);
+	resp		<= controle(11 downto 10);
+	imm         <= controle(16 downto 15);
+	jump        <= controle(14);
+	reg_write   <= controle(20);
+	srl_cnt		<= controle(4 downto 3);
+	slt_cnt		<= controle(6 downto 5);
+	resp_aux	<= controle(9);
+	mem_write	<= controle(7);
+	mem_read	<= controle(8);
+	branch		<= controle(12);
+	alu_ctrl	<= controle(2 downto 0);
+	reg2mux		<= controle(17);
+	reg_dest	<= controle(19 downto 18);
+	desl		<= controle(13);
 
 	-- sinais relacionados ao imediato
-	aux_imm16      	<= instrucao(31 downto 15);
-	aux_imm12      	<= instrucao(31 downto 20);
-	aux_imm8   	   	<= instrucao(31 downto 24);
-	aux_imm22      	<= instrucao(31 downto 10);
+	imm8   	   	<= instrucao(31 downto 24);
+	imm12      	<= instrucao(31 downto 20);
+	imm16      	<= instrucao(31 downto 15);
+	imm22      	<= instrucao(31 downto 10);
 
 	-- A partir deste comentário instancie todos o componentes que serão usados na sua via_de_dados_ciclo_unico.
 	-- A instanciação do componente deve começar com um nome que você deve atribuir para a referida instancia seguido de : e seguido do nome
@@ -287,8 +309,8 @@ begin
 			largura_dado => 32
 		)
 		port map(
-			dado_ent_0 	=> pc_branch, 
-			dado_ent_1 	=> beq_signal,
+			dado_ent_0 	=> pc_sum, 
+			dado_ent_1 	=> pc_next_address,
 			sele_ent	=> branch_result,            
 			dado_sai    => pc_aux
 		);
@@ -300,7 +322,7 @@ begin
 		port map (
 			dado_ent_0 	=> pc_aux, 
 			dado_ent_1 	=> jump_signal,
-			sele_ent	=> aux_jump,            
+			sele_ent	=> jump,            
 			dado_sai    => aux_pc_in
 		);
 
@@ -309,7 +331,7 @@ begin
 			entrada 	=> aux_pc_in,
 			saida 		=> aux_pc_out,
 			clk 		=> clock,
-			we 			=> aux_we,
+			we 			=> we,
 			reset 		=> reset
 			);
 
@@ -317,7 +339,7 @@ begin
 		port map(
 			entrada_a => aux_pc_out,
 			entrada_b => "0001",
-			saida => beq_signal
+			saida => pc_next_address
 		);
 	
 	instancia_mem_instruction: component memi
@@ -330,27 +352,29 @@ begin
 	
 	instancia_shifter_jump: component deslocador
 		generic map (
-			largura_dado 	=> 32,
-			largura_qtde 	=> 32
+			largura_dado 	=> 26,
+			largura_qtde 	=> 2
 		)
 		port map (
 			ent_rs_dado 	     	=> jump_desl,
 			ent_rt_ende    		 	=> "0010",
 			ent_tipo_deslocamento	=> "01",
-			sai_rd_dado           	=> jump_signal
-		);		
+			sai_rd_dado           	=> jump_signal_aux
+		);
+
+	jump_signal <= jump_signal_aux & pc_next_address(31 downto 28);
 
 	-- instâncias relacionadas ao banco de registradores
 	instancia_banco_registradores : component banco_registradores
 		port map(
-			ent_rs_ende => aux_read_rs1,
-			ent_rt_ende => aux_read_rs2,
-			ent_rd_ende => aux_write_rd,
-			ent_rd_dado => result,
+			ent_rs_ende => endereco_rs1,
+			ent_rt_ende => endereco_rs2,
+			ent_rd_ende => endereco_rd,
+			ent_rd_dado => aux_result,
 			sai_rs_dado => read_data1,
 			sai_rt_dado => read_data2,
 			clk 		=> clock,
-			we 			=> aux_reg_write
+			we 			=> reg_write
 		);
 
 	mux_register_destiny: component mux41
@@ -362,78 +386,136 @@ begin
 			dado_ent_1	=> rd_14to10,
 			dado_ent_2	=> rd_19to15, 
 			dado_ent_3	=> open,
-			sele_ent	=> aux_reg_dest,                                      
-			dado_sai    => aux_write_rd                            
+			sele_ent	=> reg_dest,                                      
+			dado_sai    => endereco_rd                            
 		);
 	
 	-- instâncias relacionadas aos imediatos
+	instancia_extensor_8bits: component extensor
+		port map (
+			entrada_Rs 	=> imm8,
+			saida      	=> imm8_result			
+		);
+
+	instancia_extensor_12bits: component extensor
+		port map (
+			entrada_Rs 	=> imm12,
+			saida      	=> imm12_result			
+		);
+
+	instancia_extensor_16bits: component extensor
+		port map (
+			entrada_Rs 	=> imm16,
+			saida      	=> imm16_result			
+		);
+
+	instancia_extensor_22bits: component extensor
+		port map (
+			entrada_Rs 	=> imm22,
+			saida      	=> imm22_result			
+		);
+	
 	instancia_mux_immediate: component mux41
 		generic map (
 			largura_dado => 32
 		)
 		port map (
-			dado_ent_0	=> aux_imm8,
-			dado_ent_1	=> aux_imm12,
-			dado_ent_2	=> aux_imm16, 
-			dado_ent_3	=> aux_imm22,
-			sele_ent	=> aux_imm,                                      
+			dado_ent_0	=> imm8_result,
+			dado_ent_1	=> imm12_result,
+			dado_ent_2	=> imm16_result, 
+			dado_ent_3	=> imm22_result,
+			sele_ent	=> imm,                                      
 			dado_sai    => imm_result       
 		);
 	
-	instancia_extensor: component extensor
-		port map (
-			entrada_Rs 	=> imm_result,
-			saida      	=> imm_extend			
-		);
-	
-	-- instancias relacionadas a ULA
-	instancia_mux_ula: component mux21
+	-- instancias relacionadas aos blocos aritméticos
+	instancia_mux_reg2: component mux21
 		generic map(
 			largura_dado => 32
 		)
 		port map(
 			dado_ent_0 	=> read_data2, 
-			dado_ent_1 	=> imm_extend,
-			sele_ent	=> aux_alu_scr,            
-			dado_sai    => mux_to_alu
+			dado_ent_1 	=> imm_result,
+			sele_ent	=> reg2mux,            
+			dado_sai    => conteudo_reg2mux
 		);
 	
 	instancia_ula : component ula
   		port map(
 			entrada_a => read_data1,
-			entrada_b => read_data2,
-			seletor => aux_ula_ctrl,
+			entrada_b => conteudo_reg2mux,
+			seletor => alu_ctrl,
 			saida => alu_answer
  		);
 	
-	instancia_AND: component porta_and
+	instancia_slt: component comparador
 		port map (
-			entrada_a => aux_branch,
-			entrada_b => alu_answer(0),
+			entrada_a => read_data1,
+			entrada_b => conteudo_reg2mux,
+			controle  => slt_cnt,
+			saida     => slt_answer
+		  );
+	
+	instancia_AND_NOT: component porta_and_not
+		port map (
+			entrada_a => branch,
+			entrada_b => slt_answer(0),
 			saida     => branch_result
 		);
+
+	instancia_extensor_comparador: component extensor
+		port map (
+			entrada_Rs 	=> slt_answer,
+			saida      	=> slt_answer_extend			
+		);
+	
+	instancia_srl: deslocador
+	generic map (
+		largura_dado 	=> 32,
+		largura_qtde 	=> 32
+	)
+	port map (
+		ent_rs_dado 	     	=> read_data1,
+		ent_rt_ende    		 	=> conteudo_reg2mux,
+		ent_tipo_deslocamento	=> srl_cnt,
+		sai_rd_dado           	=> shifter_answer
+		);
+	
 	
 	-- instâncias relacionadas ao Data Memory
 	instancia_data_memory: component memd
 		port map (
 			clk 			=> clock,               
-			mem_write		=> aux_mem_write, 
-			mem_read		=> aux_mem_read,
+			mem_write		=> mem_write, 
+			mem_read		=> mem_read,
 			write_data_mem  => read_data2,   
 			adress_mem      => alu_answer,
 			read_data_mem   => read_data
 			
 		);
 	
-	instancia_mux_result: component mux21
+	instancia_mux_result: component mux41
 		generic map (
 			largura_dado => 32
 		)
 		port map (
-			dado_ent_0 	=> alu_answer, 
-			dado_ent_1 	=> read_data,
-			sele_ent	=> aux_mem_to_reg,            
-			dado_sai    => result	
+			dado_ent_0	=> alu_answer,
+			dado_ent_1	=> read_data,
+			dado_ent_2	=> shifter_answer, 
+			dado_ent_3	=> pc_sum,
+			sele_ent	=> resp,                                      
+			dado_sai    => result       
+		);
+
+	instancia_mux_result_aux: component mux21
+		generic map(
+			largura_dado => 32
+		)
+		port map(
+			dado_ent_0 	=> slt_answer_extend, 
+			dado_ent_1 	=> result,
+			sele_ent	=> resp_aux,            
+			dado_sai    => aux_result
 		);
 	
 	-- instâncias relacionadas aos shifters
@@ -443,7 +525,7 @@ begin
 			largura_qtde 	=> 32
 		)
 		port map (
-			ent_rs_dado 	     	=> imm_extend,
+			ent_rs_dado 	     	=> imm_result,
 			ent_rt_ende    		 	=> "1010",
 			ent_tipo_deslocamento	=> "01",
 			sai_rd_dado           	=> shifter10
@@ -455,7 +537,7 @@ begin
 			largura_qtde 	=> 32
 		)
 		port map (
-			ent_rs_dado 	     	=> imm_extend,
+			ent_rs_dado 	     	=> imm_result,
 			ent_rt_ende    		 	=> "0010",
 			ent_tipo_deslocamento	=> "01",
 			sai_rd_dado           	=> shifter2
