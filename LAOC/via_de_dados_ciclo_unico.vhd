@@ -10,7 +10,7 @@ use IEEE.std_logic_1164.all;
 entity via_de_dados_ciclo_unico is
 	generic (
 		-- declare todos os tamanhos dos barramentos (sinais) das portas da sua via_dados_ciclo_unico aqui.
-		dp_ctrl_bus_width : natural := 18; -- tamanho do barramento de controle da via de dados (DP) em bits
+		dp_ctrl_bus_width : natural := 22; -- tamanho do barramento de controle da via de dados (DP) em bits
 		data_width        : natural := 32; -- tamanho do dado em bits
 		pc_width          : natural := 32; -- tamanho da entrada de endereços da MI ou MP em bits (memi.vhd)
 		fr_addr_width     : natural := 5;  -- tamanho da linha de endereços do banco de registradores em bits
@@ -94,6 +94,18 @@ architecture comportamento of via_de_dados_ciclo_unico is
 		);
 	end component;
 
+	component extensor1 is
+		generic (
+			largura_dado  : natural := 1;
+			largura_saida : natural := 32 
+		);
+	
+		port (
+			entrada_Rs : in std_logic_vector((largura_dado - 1) downto 0);
+			saida      : out std_logic_vector((largura_saida - 1) downto 0)
+		);
+	end component;
+	
 	component extensor8 is
 		generic (
 			largura_dado  : natural := 8;
@@ -498,7 +510,7 @@ begin
 			saida     => branch_result
 		);
 
-	instancia_extensor_comparador: component extensor16
+	instancia_extensor_comparador: component extensor1
 		port map (
 			entrada_Rs 	=> slt_answer,
 			saida      	=> slt_answer_extend			
