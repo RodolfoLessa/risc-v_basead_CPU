@@ -94,10 +94,46 @@ architecture comportamento of via_de_dados_ciclo_unico is
 		);
 	end component;
 
-	component extensor is
+	component extensor8 is
 		generic (
-			largura_dado  : natural := 32;
-			largura_saida : natural := 32
+			largura_dado  : natural := 8;
+			largura_saida : natural := 32 
+		);
+	
+		port (
+			entrada_Rs : in std_logic_vector((largura_dado - 1) downto 0);
+			saida      : out std_logic_vector((largura_saida - 1) downto 0)
+		);
+	end component;
+
+	component extensor12 is
+		generic (
+			largura_dado  : natural := 12;
+			largura_saida : natural := 32 
+		);
+	
+		port (
+			entrada_Rs : in std_logic_vector((largura_dado - 1) downto 0);
+			saida      : out std_logic_vector((largura_saida - 1) downto 0)
+		);
+	end component;
+
+	component extensor16 is
+		generic (
+			largura_dado  : natural := 16;
+			largura_saida : natural := 32 
+		);
+	
+		port (
+			entrada_Rs : in std_logic_vector((largura_dado - 1) downto 0);
+			saida      : out std_logic_vector((largura_saida - 1) downto 0)
+		);
+	end component;
+
+	component extensor22 is
+		generic (
+			largura_dado  : natural := 22;
+			largura_saida : natural := 32 
 		);
 	
 		port (
@@ -243,8 +279,7 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	signal imm16_result   	  : std_logic_vector(data_width downto 0);
 	signal imm22   	  		  : std_logic_vector(21 downto 0);
 	signal imm22_result   	  : std_logic_vector(data_width downto 0);
-	signal imm_result 		  : std_logic_vector(data_width downto 0);
-	
+	signal imm_result   	  : std_logic_vector(data_width downto 0);
 
 	-- sinais relacionados ao shifter
 	signal shifter10   	  : std_logic_vector(data_width downto 0);
@@ -391,25 +426,25 @@ begin
 		);
 	
 	-- instâncias relacionadas aos imediatos
-	instancia_extensor_8bits: component extensor
+	instancia_extensor_8bits: component extensor8
 		port map (
 			entrada_Rs 	=> imm8,
 			saida      	=> imm8_result			
 		);
 
-	instancia_extensor_12bits: component extensor
+	instancia_extensor_12bits: component extensor12
 		port map (
 			entrada_Rs 	=> imm12,
 			saida      	=> imm12_result			
 		);
 
-	instancia_extensor_16bits: component extensor
+	instancia_extensor_16bits: component extensor16
 		port map (
 			entrada_Rs 	=> imm16,
 			saida      	=> imm16_result			
 		);
 
-	instancia_extensor_22bits: component extensor
+	instancia_extensor_22bits: component extensor22
 		port map (
 			entrada_Rs 	=> imm22,
 			saida      	=> imm22_result			
@@ -424,12 +459,12 @@ begin
 			dado_ent_1	=> imm12_result,
 			dado_ent_2	=> imm16_result, 
 			dado_ent_3	=> imm22_result,
-			sele_ent	=> imm,                                      
+			sele_ent	=> imm,                                    
 			dado_sai    => imm_result       
 		);
 	
-	-- instancias relacionadas aos blocos aritméticos
-	instancia_mux_reg2: component mux21
+	-- instancias relacionadas a ULA
+	instancia_mux_ula: component mux21
 		generic map(
 			largura_dado => 32
 		)
@@ -463,7 +498,7 @@ begin
 			saida     => branch_result
 		);
 
-	instancia_extensor_comparador: component extensor
+	instancia_extensor_comparador: component extensor16
 		port map (
 			entrada_Rs 	=> slt_answer,
 			saida      	=> slt_answer_extend			
