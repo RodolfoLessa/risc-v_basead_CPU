@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2023-05-29T01:25:51.650Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36" etag="urm4KYPFTFSRit138Bti" version="21.3.5" type="github">
+<mxfile host="app.diagrams.net" modified="2023-05-29T23:30:46.127Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36" etag="eaOxLDKVNu9lcj42997x" version="21.3.5" type="github">
   <diagram name="Página-1" id="U09H-SSrCiXjcYHxB3I6">
-    <mxGraphModel dx="677" dy="768" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
+    <mxGraphModel dx="777" dy="443" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -1399,7 +1399,7 @@
         <mxCell id="Nmrm6_6fbguC6e-CNsKx-112" value="31:28" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=6;" parent="1" vertex="1">
           <mxGeometry x="81" y="554" width="30" height="9.5" as="geometry" />
         </mxCell>
-        <mxCell id="OaWmqGqrFI5Y5p4iS_-y-4" value="" style="edgeStyle=orthogonalEdgeStyle;shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=0;entryDx=0;entryDy=0;labelBackgroundColor=default;strokeColor=#000000;fontFamily=Helvetica;fontSize=11;fontColor=default;endArrow=none;endFill=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;fillColor=#ffe6cc;" edge="1" parent="1" source="Gvlh0brdfd21mCTL1ysy-116" target="OaWmqGqrFI5Y5p4iS_-y-2">
+        <mxCell id="OaWmqGqrFI5Y5p4iS_-y-4" value="" style="edgeStyle=orthogonalEdgeStyle;shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=0;entryDx=0;entryDy=0;labelBackgroundColor=default;strokeColor=#000000;fontFamily=Helvetica;fontSize=11;fontColor=default;endArrow=none;endFill=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;fillColor=#ffe6cc;" parent="1" source="Gvlh0brdfd21mCTL1ysy-116" target="OaWmqGqrFI5Y5p4iS_-y-2" edge="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="795" y="299" as="sourcePoint" />
             <Array as="points">
@@ -1409,8 +1409,11 @@
             <mxPoint x="55" y="295" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="OaWmqGqrFI5Y5p4iS_-y-2" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;" vertex="1" parent="1">
+        <mxCell id="OaWmqGqrFI5Y5p4iS_-y-2" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;" parent="1" vertex="1">
           <mxGeometry x="795" y="297.75" width="3" height="3" as="geometry" />
+        </mxCell>
+        <mxCell id="xX2OsYo3G-t85M8CfASI-12" value="&lt;h1&gt;Modificar&lt;/h1&gt;&lt;p&gt;Alterar o valor do PC para 12 bits&lt;/p&gt;&lt;p&gt;Retirar a SLT e usar somente a ALU para as instruções e desvio&lt;/p&gt;&lt;p&gt;Retirar os Signed Extend não necessários 16 e 22 bits&lt;/p&gt;&lt;p&gt;Retirar os Rd de 9:5&lt;/p&gt;&lt;p&gt;Mudar a instrução JUMP&lt;/p&gt;&lt;p&gt;Verificar se o imediato de BEQ é necessário ser de 16 bits&lt;/p&gt;" style="text;html=1;strokeColor=none;fillColor=none;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="733" y="11.250000000000007" width="392" height="196.75" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
