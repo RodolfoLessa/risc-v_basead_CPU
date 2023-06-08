@@ -6,7 +6,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity extensor22 is
+entity extensor is
 	generic (
 		largura_dado  : natural;
 		largura_saida : natural
@@ -16,9 +16,9 @@ entity extensor22 is
 		entrada_Rs : in std_logic_vector((largura_dado - 1) downto 0);
 		saida      : out std_logic_vector((largura_saida - 1) downto 0)
 	);
-end extensor22;
+end extensor;
 
-architecture dataflow of extensor22 is
+architecture dataflow of extensor is
 	signal extensao : std_logic_vector((largura_dado - 1) downto 0);
 begin
 	extensao <= (others => entrada_Rs(largura_dado - 1)); -- todos os bits da extensão correspondem ao bit mais significativo da entrada Rs
