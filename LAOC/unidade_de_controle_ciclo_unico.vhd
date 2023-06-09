@@ -12,9 +12,9 @@ use ieee.numeric_std.all;
 entity unidade_de_controle_ciclo_unico is
     generic (
         INSTR_WIDTH       : natural := 32;
-        OPCODE_WIDTH      : natural := 4;
+        OPCODE_WIDTH      : natural := 5;
         DP_CTRL_BUS_WIDTH : natural := 16;
-        ULA_CTRL_WIDTH    : natural := 4
+        ULA_CTRL_WIDTH    : natural := 3
     );
     port (
         instrucao : in std_logic_vector(INSTR_WIDTH - 1 downto 0);       -- instrução

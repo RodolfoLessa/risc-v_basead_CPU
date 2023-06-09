@@ -7,10 +7,10 @@ use IEEE.std_logic_1164.all;
 
 entity processador_ciclo_unico is
 	generic (
-		DATA_WIDTH        : natural; -- tamanho do barramento de dados em bits
-		PROC_INSTR_WIDTH  : natural; -- tamanho da instrução do processador em bits
-		PROC_ADDR_WIDTH   : natural; -- tamanho do endereço da memória de programa do processador em bits
-		DP_CTRL_BUS_WIDTH : natural  -- tamanho do barramento de controle em bits
+		DATA_WIDTH        : natural := 32; -- tamanho do barramento de dados em bits
+		PROC_INSTR_WIDTH  : natural := 32; -- tamanho da instrução do processador em bits
+		PROC_ADDR_WIDTH   : natural := 4096; -- tamanho do endereço da memória de programa do processador em bits
+		DP_CTRL_BUS_WIDTH : natural := 16 -- tamanho do barramento de controle em bits
 	);
 	port (
 		--		Chaves_entrada 			: in std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -26,11 +26,11 @@ architecture comportamento of processador_ciclo_unico is
 	component via_de_dados_ciclo_unico is
 		generic (
 			-- declare todos os tamanhos dos barramentos (sinais) das portas da sua via_dados_ciclo_unico aqui.
-			DP_CTRL_BUS_WIDTH : natural := 6;  -- tamanho do barramento de controle da via de dados (DP) em bits
-			DATA_WIDTH        : natural := 16; -- tamanho do dado em bits
-			PC_WIDTH          : natural := 8;  -- tamanho da entrada de endereços da MI ou MP em bits (memi.vhd)
-			FR_ADDR_WIDTH     : natural := 4;  -- tamanho da linha de endereços do banco de registradores em bits
-			INSTR_WIDTH       : natural := 16  -- tamanho da instrução em bits
+			DP_CTRL_BUS_WIDTH : natural := 16; -- tamanho do barramento de controle da via de dados (DP) em bits
+			DATA_WIDTH        : natural := 32; -- tamanho do dado em bits
+			PC_WIDTH          : natural := 5;  -- tamanho da entrada de endereços da MI ou MP em bits (memi.vhd)
+			FR_ADDR_WIDTH     : natural := 5;  -- tamanho da linha de endereços do banco de registradores em bits
+			INSTR_WIDTH       : natural := 32  -- tamanho da instrução em bits
 		);
 		port (
 			-- declare todas as portas da sua via_dados_ciclo_unico aqui.
@@ -47,10 +47,10 @@ architecture comportamento of processador_ciclo_unico is
 
 	component unidade_de_controle_ciclo_unico is
 		generic (
-			INSTR_WIDTH       : natural := 16; -- OP OP OP OP RD RD RD RD RS RS RS RS RT RT RT RT
-			OPCODE_WIDTH      : natural := 4;
-			DP_CTRL_BUS_WIDTH : natural := 6; -- WE RW UL UL UL UL
-			ULA_CTRL_WIDTH    : natural := 4
+			INSTR_WIDTH       : natural := 32; -- OP OP OP OP RD RD RD RD RS RS RS RS RT RT RT RT
+			OPCODE_WIDTH      : natural := 5;
+			DP_CTRL_BUS_WIDTH : natural := 16; -- WE RW UL UL UL UL
+			ULA_CTRL_WIDTH    : natural := 3
 		);
 		port (
 			instrucao : in std_logic_vector(INSTR_WIDTH - 1 downto 0);       -- instrução
@@ -60,8 +60,8 @@ architecture comportamento of processador_ciclo_unico is
 
 	component memi is
 		generic (
-			INSTR_WIDTH   : natural := 16; -- tamanho da instrução em número de bits
-			MI_ADDR_WIDTH : natural := 8   -- tamanho do endereço da memória de instruções em número de bits
+			INSTR_WIDTH   : natural := 32; -- tamanho da instrução em número de bits
+			MI_ADDR_WIDTH : natural := 12  -- tamanho do endereço da memória de instruções em número de bits
 		);
 		port (
 			clk       : in std_logic;
