@@ -13,7 +13,7 @@ entity unidade_de_controle_ciclo_unico is
     generic (
         INSTR_WIDTH       : natural := 32;
         OPCODE_WIDTH      : natural := 4;
-        DP_CTRL_BUS_WIDTH : natural := 22;
+        DP_CTRL_BUS_WIDTH : natural := 16;
         ULA_CTRL_WIDTH    : natural := 4
     );
     port (
@@ -30,7 +30,7 @@ architecture beh of unidade_de_controle_ciclo_unico is
 
     signal inst_aux : std_logic_vector (31 downto 0); -- instrucao
     signal opcode   : std_logic_vector (4 downto 0);  -- opcode
-    signal ctrl_aux : std_logic_vector (21 downto 0);  -- controle
+    signal ctrl_aux : std_logic_vector (16 downto 0);  -- controle
 
 begin
     inst_aux <= instrucao;
@@ -43,91 +43,67 @@ begin
         case opcode is
             when "00000" =>
               -- ADD
-              ctrl_aux <= "110000000010011000";
+              ctrl_aux <= "110000000000000";
             when "00001" =>
               -- ADDI
-              ctrl_aux <= "101110000000100110";
+              ctrl_aux <= "100000100000001";
             when "00010" =>
               -- SUB
-              ctrl_aux <= "110000000010011010";
+              ctrl_aux <= "110000000000001";
             when "00011" =>
-              -- AUIPC
-              ctrl_aux <= "100011000110011000";
-            when "00100" =>
               -- XOR
-              ctrl_aux <= "110000000010101100";
-            when "00101" =>
+              ctrl_aux <= "110000000000100";
+            when "00100" =>
               -- XORI
-              ctrl_aux <= "101110000000110110";
-            when "00110" =>
+              ctrl_aux <= "100000100000100";
+            when "00101" =>
               -- OR
-              ctrl_aux <= "110000000010100100";
-            when "00111" =>
+              ctrl_aux <= "110000000000011";
+            when "00110" =>
               -- ORI
-              ctrl_aux <= "101110000000101110";
-            when "01000" =>
+              ctrl_aux <= "100000100000011";
+            when "00111" =>
               -- AND
-              ctrl_aux <= "110000000010101000";
-            when "01001" =>
+              ctrl_aux <= "110000000000010";
+            when "01000" =>
               -- ANDI
-              ctrl_aux <= "101110000000101010";
-            when "01010" =>
+              ctrl_aux <= "100000100000010";
+            when "01001" =>
               -- BEQ
-              ctrl_aux <= "000010011010000000";
-            when "01011" =>
+              ctrl_aux <= "001000000000101";
+            when "01010" =>
               -- BLT
-              ctrl_aux <= "000010011010001000";
-            when "01100" =>
+              ctrl_aux <= "001000000000111";
+            when "01011" =>
               -- BGE
-              ctrl_aux <= "000010011010000000";
-            when "01101" =>
-              -- SLT
-              ctrl_aux <= "110000000000100000";
-            when "01110" =>
-              -- SLTI
-              ctrl_aux <= "101110000000100000";
-            when "01111" =>
-              -- LB
-              ctrl_aux <= "101100000000110111";
-            when "10000" =>
-              -- LH
-              ctrl_aux <= "101101000000110111";
-            when "10001" =>
+              ctrl_aux <= "001000000000110";
+            when "01100" =>
               -- LW
-              ctrl_aux <= "101110000000110111";
-            when "10010" =>
-              -- SB
-              ctrl_aux <= "001100000000111011";
-            when "10011" =>
-              -- SH
-              ctrl_aux <= "001101000000111011";
-            when "10100" =>
+              ctrl_aux <= "100001101000000";
+            when "01101" =>
               -- SW
-              ctrl_aux <= "001110000000111011";
-            when "10101" =>
+              ctrl_aux <= "000010100000000";
+            when "01110" =>
               -- JAL
-              ctrl_aux <= "101110000111100110";
-            when "10110" =>
+              ctrl_aux <= "110100011000000";
+            when "01111" =>
               -- JUMP
-              ctrl_aux <= "000000010000000000";
-            when "11001" =>
+              ctrl_aux <= "000100000000000";
+            when "10010" =>
               -- SLL
-              ctrl_aux <= "110000000000111010";
-            when "11010" =>
-              -- SLLI
-              ctrl_aux <= "101100000000111010";
-            when "11011" =>
+              ctrl_aux <= "110000010000000";
+            when "10011" =>
               -- SLR
-              ctrl_aux <= "110000000000111100";
-            when "11100" =>
-              -- SLRI
-              ctrl_aux <= "101100000000111100";
-            when "11101" =>
+              ctrl_aux <= "110000010001000";
+            when "10100" =>
+              -- ROL
+              ctrl_aux <= "110000010010000";
+              when "10101" =>
+              -- ROR
+              ctrl_aux <= "110000010011000";
+            when "10110" =>
               -- SRA
-              ctrl_aux <= "110000000000111110";
-            when "11110" =>
-              -- SLRAI
-              ctrl_aux <= "101100000000111110";
+              ctrl_aux <= "110000010100000";
           end case;
     end process;
     controle <= ctrl_aux;
