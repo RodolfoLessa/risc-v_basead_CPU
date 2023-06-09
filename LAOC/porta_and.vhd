@@ -6,15 +6,15 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity porta_and_not is
+entity porta_and is
   port (
     entrada_a : in std_logic;
     entrada_b : in std_logic;
     saida     : out std_logic
   );
-end entity porta_and_not;
+end entity porta_and;
 
-architecture dataflow of porta_and_not is
+architecture dataflow of porta_and is
 begin
     saida <= entrada_a and not entrada_b;
 end architecture dataflow;
