@@ -37,9 +37,11 @@ architecture comportamento of processador_ciclo_unico is
 			clock     : in std_logic;
 			reset     : in std_logic;
 			controle  : in std_logic_vector (DP_CTRL_BUS_WIDTH - 1 downto 0);
-			instruct  : out std_logic_vector (INSTR_WIDTH - 1 downto 0);
+			instrucao : in std_logic_vector (INSTR_WIDTH - 1 downto 0);
 			pc_out    : out std_logic_vector (PC_WIDTH - 1 downto 0);
-			saida     : out std_logic_vector (DATA_WIDTH - 1 downto 0)
+			saida     : out std_logic_vector (DATA_WIDTH - 1 downto 0);
+			zero      : out std_logic;
+			negativo  : out std_logic
 		);
 	end component;
 
@@ -91,7 +93,7 @@ begin
 		clock     => Clock,
 		reset     => Chave_reset,
 		controle  => aux_controle,
-		instruct  => aux_instrucao,
+		instrucao => aux_instrucao,
 		pc_out    => aux_endereco,
 		saida     => Leds_vermelhos_saida
 	);

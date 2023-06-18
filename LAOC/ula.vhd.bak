@@ -27,26 +27,12 @@ architecture comportamental of ula is
     signal resultado_ula_zero   : std_logic;
 begin
     process (entrada_a, entrada_b, seletor) is
-       variable maior_que: std_logic;
-		 variable menor_que: std_logic;
-		 variable igual_que: std_logic;
+        variable subtraction_result: std_logic_vector(31 downto 0);
     begin
 
-	    if signed(entrada_a) > signed(entrada_b) then
-            maior_que := '1';
-            menor_que := '0';
-            igual_que := '0';
-       elsif signed(entrada_a) < signed(entrada_b) then
-            maior_que := '0';
-            menor_que := '1';
-            igual_que := '0';
-       else
-            maior_que := '0';
-            menor_que := '0';
-            igual_que := '1';
-       end if;
-       
-		 case(seletor) is
+        subtraction_result := std_logic_vector(signed(entrada_a) - signed(entrada_b));
+
+        case(seletor) is
             when "000" => -- soma com sinal
             resultado_ula <= std_logic_vector(signed(entrada_a) + signed(entrada_b));
             when "001" => -- soma estendida
@@ -58,11 +44,11 @@ begin
             when "100" => -- xor lógico
             resultado_ula <= entrada_a xor entrada_b;
             when "101" => -- ==
-            resultado_ula_zero  <= igual_que;
+            resultado_ula_zero  <= '1' when subtraction_result = (others => '0') else '0';
             when "110" => -- <=
-            resultado_ula_zero  <= menor_que;
+            resultado_ula_zero  <= '1' when subtraction_result(31) = '1' else '0';
             when "111" => -- >= 
-            resultado_ula_zero  <= maior_que; 
+            resultado_ula_zero  <= '1' when subtraction_result(31) = '0' else '0';
             when others => -- xnor lógico
             resultado_ula <= entrada_a xnor entrada_b;
         end case;

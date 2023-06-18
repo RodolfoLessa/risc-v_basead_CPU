@@ -23,7 +23,7 @@ entity deslocador is
 	port (
 		ent_rs_dado           : in std_logic_vector((largura_dado - 1) downto 0);
 		ent_rt_ende           : in std_logic_vector((largura_qtde - 1) downto 0); -- o campo de endereços de rt, representa a quantidade a ser deslocada nesse contexto.
-		ent_tipo_deslocamento : in std_logic_vector(1 downto 0);
+		ent_tipo_deslocamento : in std_logic_vector(2 downto 0);
 		sai_rd_dado           : out std_logic_vector((largura_dado - 1) downto 0)
 	);
 end deslocador;
@@ -42,11 +42,11 @@ begin
 			if (ent_rt_ende(i) = '0') then
 				vetor_parcial(i + 1) <= vetor_parcial(i); -- nop
 			else
-				if (ent_tipo_deslocamento = "00") then
+				if (ent_tipo_deslocamento = "000") then
 					vetor_parcial(i + 1) <= ((2 ** i - 1) downto 0 => '0') & vetor_parcial(i)(largura_dado - 1 downto 2 ** i); -- srl                    
-				elsif (ent_tipo_deslocamento = "01") then
+				elsif (ent_tipo_deslocamento = "001") then
 					vetor_parcial(i + 1) <= vetor_parcial(i)((largura_dado - 2 ** i - 1) downto 0) & ((2 ** i - 1) downto 0 => '0'); -- sll
-				elsif (ent_tipo_deslocamento = "10") then
+				elsif (ent_tipo_deslocamento = "010") then
 					vetor_parcial(i + 1) <= vetor_parcial(i)((2 ** i - 1) downto 0) & vetor_parcial(i)(largura_dado - 1 downto 2 ** i); -- rr
 				else                                                                                                                -- situação que ent_tipo_deslocamento = "11", ou seja, instrução "copy" ou "move", como queiram chamar.
 					vetor_parcial(i + 1) <= vetor_parcial(i);

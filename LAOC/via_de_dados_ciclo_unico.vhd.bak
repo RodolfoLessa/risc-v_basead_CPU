@@ -22,7 +22,7 @@ entity via_de_dados_ciclo_unico is
 		clock     : in std_logic;
 		reset     : in std_logic;
 		controle  : in std_logic_vector(dp_ctrl_bus_width - 1 downto 0);
-		instruct  : out std_logic_vector(instr_width - 1 downto 0);
+		instrucao : in std_logic_vector(instr_width - 1 downto 0);
 		pc_out    : out std_logic_vector(pc_width - 1 downto 0);
 		saida     : out std_logic_vector(data_width - 1 downto 0)
 	);
@@ -33,7 +33,7 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	-- declare todos os componentes que serão necessários na sua via_de_dados_ciclo_unico a partir deste comentário
 	component pc is
 		generic (
-			pc_width : natural := 12
+			pc_width : natural := 32
 		);
 		port (
 			entrada : in std_logic_vector(pc_width - 1 downto 0);
@@ -47,7 +47,7 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	component memi is
 		generic (
 			INSTR_WIDTH   : natural := 32; -- tamanho da instrução em numero de bits
-			MI_ADDR_WIDTH : natural := 12  -- tamanho do endereço da memoria de instruções em numero de bits
+			MI_ADDR_WIDTH : natural := 32  -- tamanho do endereço da memoria de instruções em numero de bits
 		);
 		port (
 			clk       : in std_logic;
@@ -80,28 +80,14 @@ architecture comportamento of via_de_dados_ciclo_unico is
 		);
 	end component;
 
-	component deslocador is
-		generic (
-			largura_dado : natural := 32;
-			largura_qtde : natural := 5
-		);
-	
+	component shifter_barrel is
 		port (
-			ent_rs_dado           : in std_logic_vector((largura_dado - 1) downto 0);
-			ent_rt_ende           : in std_logic_vector((largura_qtde - 1) downto 0); -- o campo de endereços de rt, representa a quantidade a ser deslocada nesse contexto.
-			ent_tipo_deslocamento : in std_logic_vector(2 downto 0);
-			sai_rd_dado           : out std_logic_vector((largura_dado - 1) downto 0)
+		  data_in: in std_logic_vector(31 downto 0);
+		  shift_amount: in std_logic_vector(31 downto 0);
+		  shift_type: in std_logic_vector(2 downto 0); -- "000" para SRL, "001" para SLL, "010" para ROR, "011" para ROL, "100" para SRA
+		  data_out: out std_logic_vector(31 downto 0)
 		);
-	end component;
-
---	component shifter_barrel is
---		port (
---		  data_in: in std_logic_vector(31 downto 0);
---		  shift_amount: in std_logic_vector(31 downto 0);
---		  shift_type: in std_logic_vector(2 downto 0); -- "000" para SRL, "001" para SLL, "010" para ROR, "011" para ROL, "100" para SRA
---		  data_out: out std_logic_vector(31 downto 0)
---		);
---	  end component shifter_barrel;
+	  end component shifter_barrel;
 
 	component extensor is
 		generic (
@@ -157,7 +143,7 @@ architecture comportamento of via_de_dados_ciclo_unico is
 
 	component somador is
 		generic (
-			largura_dado : natural := 12
+			largura_dado : natural := 32
 		);
 		port (
 			entrada_a : in std_logic_vector((largura_dado - 1) downto 0);
@@ -184,8 +170,16 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	component concatenador is
 		port (
 		  input: in std_logic_vector(11 downto 0);
-		  output: out std_logic_vector(31 downto 0)
+		  output: out std_logic_vector(31 downto 12)
 		);	  end component concatenador;
+
+	component comparador is
+		port (
+			entrada_a : in std_logic_vector(31 downto 0);
+			entrada_b : in std_logic_vector(31 downto 0);
+			controle : in std_logic_vector(1 downto 0);
+			saida : out std_logic_vector(0 downto 0)
+		  );	end component;
 
 	component ula is
 	generic (
@@ -216,8 +210,6 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	signal aux_branch_result  	: std_logic;
 
 	-- sinais relacionados ao banco de registradores
-	signal instrucao	   	  : std_logic_vector(INSTR_WIDTH - 1 downto 0);
-	signal aux_memi_out   	  : std_logic_vector(INSTR_WIDTH - 1 downto 0);
 	signal aux_endereco_rs1   : std_logic_vector(fr_addr_width - 1 downto 0);
 	signal aux_endereco_rs2   : std_logic_vector(fr_addr_width - 1 downto 0);
 	signal aux_endereco_rd    : std_logic_vector(fr_addr_width - 1 downto 0);
@@ -226,13 +218,13 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	signal aux_read_data2 	  : std_logic_vector(data_width - 1 downto 0);
 
 	-- entradas dos registradores destinos no mux destiny 
-	signal aux_rd_14to10 	  : std_logic_vector(fr_addr_width - 1 downto 0);
-	signal aux_rd_19to15 	  : std_logic_vector(fr_addr_width - 1 downto 0);
+	signal aux_rd_14to10 	  : std_logic_vector(data_width - 1 downto 0);
+	signal aux_rd_19to15 	  : std_logic_vector(data_width - 1 downto 0);
 	
 	-- sinais relacionados aos blocos de operação
 	signal aux_result_select_entry   : std_logic_vector(data_width - 1 downto 0);
 	signal aux_shifter_result  		 : std_logic_vector(data_width - 1 downto 0); 	
-	signal aux_alu_result            : std_logic_vector(data_width - 1 downto 0);
+	signal aux_alu_result            : std_logic_vector(data_width downto 0);
 	signal aux_alu_answer_zero       : std_logic;
 	signal aux_jal_result		     : std_logic_vector(data_width - 1 downto 0);
 
@@ -241,33 +233,31 @@ architecture comportamento of via_de_dados_ciclo_unico is
 
 	-- sinais relacionados a controladora
 	signal aux_we  			: std_logic;
-	signal aux_reg_write		: std_logic;
+	signal aux_reg_write	: std_logic;
 	signal aux_reg_dest	  	: std_logic;
-	signal aux_branch   		: std_logic;
-	signal aux_jump  			: std_logic;
+	signal aux_branch   	: std_logic;
+	signal aux_jump  		: std_logic;
 	signal aux_mem_write    : std_logic;
-	signal aux_mem_read	   : std_logic;	
+	signal aux_mem_read	    : std_logic;	
 	signal aux_select_in    : std_logic;
-	signal aux_resp  			: std_logic_vector(1 downto 0);
-	signal aux_srl_cnt  		: std_logic_vector(ula_ctrl_width - 1 downto 0);
-	signal aux_alu_ctrl		: std_logic_vector(ula_ctrl_width - 1 downto 0);
+	signal aux_resp  		: std_logic_vector(1 downto 0);
+	signal aux_srl_cnt  	: std_logic_vector(ula_ctrl_width - 1 downto 0);
+	signal aux_alu_ctrl	  		: std_logic_vector(ula_ctrl_width - 1 downto 0);
 
 	-- sinais relacionados ao imediato
-	signal aux_imm32_result		: std_logic_vector(data_width - 1 downto 0);
-	signal aux_imm32   	  		: std_logic_vector(15 downto 0);
+	signal aux_imm32_result		: std_logic_vector(data_width downto 0);
+	signal aux_imm32   	  		: std_logic_vector(data_width downto 0);
 
 begin
 
 	-- A partir deste comentário faça associações necessárias das entradas declaradas na entidade da sua via_dados_ciclo_unico com
 	-- os sinais que você acabou de definir.
 	-- Veja os exemplos abaixo:
-	
-	-- sinais relacionados ao MEMI
-	instrucao			<= aux_memi_out;
+
 	-- sinais relacionados ao PC
 	aux_jump_signal	  	<= instrucao(31 downto 20);
 	aux_pc_beq_address 	<= instrucao(31 downto 20);
-	pc_out         	 	<= aux_pc_out;
+	pc_out          	<= aux_pc_out;
 
 	-- sinais relacionados ao banco de registradores
 	aux_endereco_rs1   	<= instrucao(9 downto 5);
@@ -291,7 +281,7 @@ begin
 	aux_srl_cnt			<= controle(5 downto 3);
 	aux_alu_ctrl			<= controle(2 downto 0);
 	-- sinais relacionados ao imediato
-	aux_imm32      	<= instrucao(31 downto 16);
+	aux_imm32      	<= instrucao(31 downto 15);
 
 	-- A partir deste comentário instancie todos o componentes que serão usados na sua via_de_dados_ciclo_unico.
 	-- A instanciação do componente deve começar com um nome que você deve atribuir para a referida instancia seguido de : e seguido do nome
@@ -331,7 +321,7 @@ begin
 	instancia_somador : component somador
 		port map(
 			entrada_a => aux_pc_out,
-			entrada_b => "000000000001",
+			entrada_b => "0001",
 			saida => aux_pc_next_address
 		);
 	
@@ -340,7 +330,7 @@ begin
 			clk       	=> clock,
 			reset     	=> reset,
 			Endereco  	=> aux_pc_out,
-			Instrucao 	=> aux_memi_out
+			Instrucao 	=> instrucao
 		);
 
 	instancia_contatenador: component concatenador
@@ -405,12 +395,12 @@ begin
 			saida     => aux_branch_result
 		);
 
-	instancia_shift: component deslocador
+	instancia_shift: component shifter_barrel
 		port map (
-			ent_rs_dado				=> aux_read_data1,
-			ent_rt_ende				=> aux_result_select_entry(4 downto 0),
-			ent_tipo_deslocamento	=> aux_srl_cnt,
-			sai_rd_dado				=> aux_shifter_result
+			data_in			=> aux_read_data1,
+			shift_amount	=> aux_result_select_entry,
+			shift_type		=> aux_srl_cnt,
+			data_out		=> aux_shifter_result
 		  );
 	
 	
@@ -434,7 +424,5 @@ begin
 			sele_ent	=> aux_resp,                                      
 			dado_sai    => aux_result       
 		);
-
-	instruct <= instrucao;
 
 end architecture comportamento;
