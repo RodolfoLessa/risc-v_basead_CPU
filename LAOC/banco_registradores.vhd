@@ -22,7 +22,7 @@ entity banco_registradores is
         ent_Rd_dado : in std_logic_vector((largura_dado - 1) downto 0);
         sai_Rs_dado : out std_logic_vector((largura_dado - 1) downto 0);
         sai_Rt_dado : out std_logic_vector((largura_dado - 1) downto 0);
-        clk, WE     : in std_logic
+        clk, reset, WE     : in std_logic
     );
 end banco_registradores;
 
@@ -30,7 +30,7 @@ architecture comportamental of banco_registradores is
     type registerfile is array(0 to ((2 ** largura_ende) - 1)) of std_logic_vector((largura_dado - 1) downto 0);
     signal banco : registerfile;
 begin
-    leitura : process (clk) is
+    leitura : process (clk, banco, ent_Rs_ende, ent_Rt_ende) is
     begin
         -- lê o registrador de endereço Rs da instrução apontada por PC no ciclo anterior,
         -- lê o registrador de endereço Rt da instrução apontada por PC no ciclo anterior.
@@ -38,12 +38,19 @@ begin
         sai_Rt_dado <= banco(to_integer(unsigned(ent_Rt_ende)));
     end process;
 
-    escrita : process (clk) is
+    reset_process : process (clk, reset) is
     begin
-        if rising_edge(clk) then
+        if reset = '1' then
+            -- Colocar todos os registradores como zero
+            for i in banco'range loop
+                banco(i) <= (others => '0');
+            end loop;
+        elsif rising_edge(clk) then
+            -- Restante da lógica existente
             if WE = '1' then
                 banco(to_integer(unsigned(ent_Rd_ende))) <= ent_Rd_dado;
             end if;
         end if;
+
     end process;
 end comportamental;

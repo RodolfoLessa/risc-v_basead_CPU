@@ -94,15 +94,6 @@ architecture comportamento of via_de_dados_ciclo_unico is
 		);
 	end component;
 
---	component shifter_barrel is
---		port (
---		  data_in: in std_logic_vector(31 downto 0);
---		  shift_amount: in std_logic_vector(31 downto 0);
---		  shift_type: in std_logic_vector(2 downto 0); -- "000" para SRL, "001" para SLL, "010" para ROR, "011" para ROL, "100" para SRA
---		  data_out: out std_logic_vector(31 downto 0)
---		);
---	  end component shifter_barrel;
-
 	component extensor is
 		generic (
 			largura_dado  : natural := 16;
@@ -177,6 +168,7 @@ architecture comportamento of via_de_dados_ciclo_unico is
 			ent_rd_dado : in std_logic_vector((largura_dado - 1) downto 0);
 			sai_rs_dado : out std_logic_vector((largura_dado - 1) downto 0);
 			sai_rt_dado : out std_logic_vector((largura_dado - 1) downto 0);
+			reset			: in std_logic;
 			clk         : in std_logic;
 			we          : in std_logic
 		);	end component;
@@ -358,7 +350,8 @@ begin
 			ent_rd_dado => aux_result,
 			sai_rs_dado => aux_read_data1,
 			sai_rt_dado => aux_read_data2,
-			clk 		=> clock,
+			clk 			=> clock,
+			reset 		=> reset,
 			we 			=> aux_reg_write
 		);
 
@@ -398,7 +391,7 @@ begin
 			saida_zero => aux_alu_answer_zero
  		);
 	
-	instancia_AND_NOT: component porta_and
+	instancia_AND: component porta_and
 		port map (
 			entrada_a => aux_branch,
 			entrada_b => aux_alu_answer_zero,
