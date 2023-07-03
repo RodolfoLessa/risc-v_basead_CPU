@@ -35,7 +35,7 @@ begin
             resultado_ula <= std_logic_vector(signed(entrada_a) + signed(entrada_b));
 				resultado_ula_zero <= '0';
             when "001" => -- soma estendida
-            resultado_ula <= std_logic_vector(signed(entrada_a) + signed(entrada_b));
+            resultado_ula <= std_logic_vector(signed(entrada_a) - signed(entrada_b));
 				resultado_ula_zero <= '0';
             when "010" => -- and lógico
             resultado_ula <= entrada_a and entrada_b;
