@@ -96,16 +96,10 @@ begin
               -- SLL
               ctrl_aux <= "1110000010001000";
             when "10100" =>
-              -- ROL
-              ctrl_aux <= "1110000010010000";
-              when "10101" =>
               -- ROR
-              ctrl_aux <= "1110000010011000";
-            when "10110" =>
-              -- SRA
-              ctrl_aux <= "1110000010100000";
-				when others =>
-				  ctrl_aux <= (others => '0');
+              ctrl_aux <= "1110000010010000";
+				  when others =>
+				     ctrl_aux <= (others => '0');
 			 end case;
     end process;
     controle <= ctrl_aux;

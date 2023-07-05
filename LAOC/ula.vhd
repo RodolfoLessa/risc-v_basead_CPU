@@ -25,11 +25,15 @@ end ula;
 architecture comportamental of ula is
     signal resultado_ula        : std_logic_vector((largura_dado - 1) downto 0);
     signal resultado_ula_zero   : std_logic;
+    signal equal                : std_logic;
+    signal greater_than         : std_logic;
+    signal less_than            : std_logic;    
 begin
+   equal <= '1' when entrada_a = entrada_b else '0';
+   greater_than <= '1' when entrada_a > entrada_b else '0';
+   less_than <= '1' when entrada_a < entrada_b else '0';
 	process(entrada_a, entrada_b, seletor) is
-	variable diferenca : signed((largura_dado - 1) downto 0);
 	begin
-		 diferenca := signed(entrada_a) - signed(entrada_b);
 		 case(seletor) is
             when "000" => -- soma com sinal
             resultado_ula <= std_logic_vector(signed(entrada_a) + signed(entrada_b));
@@ -48,13 +52,13 @@ begin
 				resultado_ula_zero <= '0';
             when "101" => -- ==
 				resultado_ula <= (others => '0');
-            resultado_ula_zero  <= not diferenca(largura_dado - 1);
+            resultado_ula_zero  <= equal; 
             when "110" => -- <=
 				resultado_ula <= (others => '0');
-            resultado_ula_zero  <= diferenca(largura_dado - 1);
+            resultado_ula_zero  <= greater_than;
             when "111" => -- >= 
 				resultado_ula <= (others => '0');
-            resultado_ula_zero  <= not diferenca(largura_dado - 1); 
+            resultado_ula_zero  <= less_than;
             when others => -- xnor lógico
             resultado_ula <= entrada_a xnor entrada_b;
 				resultado_ula_zero <= '0';

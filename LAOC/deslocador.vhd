@@ -43,11 +43,11 @@ begin
 				vetor_parcial(i + 1) <= vetor_parcial(i); -- nop
 			else
 				if (ent_tipo_deslocamento = "000") then
-					vetor_parcial(i + 1) <= ((2 ** i - 1) downto 0 => '0') & vetor_parcial(i)(largura_dado - 1 downto 2 ** i); -- srl                    
+					vetor_parcial(i + 1) <= ((2 ** i - 1) downto 0 => '0') & vetor_parcial(i)(largura_dado - 1 downto 2 ** i); -- SLR                    
 				elsif (ent_tipo_deslocamento = "001") then
-					vetor_parcial(i + 1) <= vetor_parcial(i)((largura_dado - 2 ** i - 1) downto 0) & ((2 ** i - 1) downto 0 => '0'); -- sll
+					vetor_parcial(i + 1) <= vetor_parcial(i)((largura_dado - 2 ** i - 1) downto 0) & ((2 ** i - 1) downto 0 => '0'); -- SLL
 				elsif (ent_tipo_deslocamento = "010") then
-					vetor_parcial(i + 1) <= vetor_parcial(i)((2 ** i - 1) downto 0) & vetor_parcial(i)(largura_dado - 1 downto 2 ** i); -- rr
+					vetor_parcial(i + 1) <= vetor_parcial(i)((2 ** i - 1) downto 0) & vetor_parcial(i)(largura_dado - 1 downto 2 ** i); -- ROR
 				else                                                                                                                -- situação que ent_tipo_deslocamento = "11", ou seja, instrução "copy" ou "move", como queiram chamar.
 					vetor_parcial(i + 1) <= vetor_parcial(i);
 				end if;
