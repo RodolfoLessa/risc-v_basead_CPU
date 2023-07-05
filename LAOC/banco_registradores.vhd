@@ -43,7 +43,7 @@ begin
         if reset = '1' then
             -- Colocar todos os registradores como zero
             for i in banco'range loop
-                banco(i) <= (others => '0');
+                banco(i) <= X"00000000";
             end loop;
         elsif rising_edge(clk) then
             -- Restante da lógica existente

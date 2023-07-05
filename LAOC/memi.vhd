@@ -29,10 +29,42 @@ begin
 		if (rising_edge(clk)) then
 			if (reset = '1') then
 				rom <= (
-					0      => X"00000000", -- exemplo de uma instrução ADD de 32 bits (8 símbolos em hexadecimal)
-					1      => X"00000001", -- exemplo de uma instrução ADDI de 32 bits (8 símbolos em hexadecimal)
-					2      => X"00000002", -- exemplo de uma instrução SUB de 32 bits (8 símbolos em hexadecimal)
-					others => X"00000003"  
+				
+				-- Operacoes Logicas e Aritmeticas
+					0      => "00000000000000000000000000000000", -- Instrução ADD de 32 bits 		= 0		
+					1      => "00000000000011110000000000000001", -- Instrução ADDI de 32 bits		= 15 					
+					2      => "00000000000000000000000000000010", -- Instrução SUB de 32 bits		= 0			
+					3      => "00000000000011110000000000000001", -- Instrução ADDI de 32 bits		= 15			
+					4      => "00000000000000000000000000000011", -- Instrução XOR de 32 bits		= 0			
+					5      => "00000000000000110000000000000100", -- Instrução XORI de 32 bits		= 3			
+					6      => "00000000000000000000000000000101", -- Instrução OR de 32 bits		= 3
+					7      => "00000000000011110000000000000110", -- Instrução ORI de 32 bits		= 15
+					8      => "00000000000000000000000000000111", -- Instrução AND de 32 bits		= 15
+					9      => "00000000000000110000000000001000", -- Instrução ANDI de 32 bits		= 3
+					
+				-- Operacoes de Load e Store
+					10     => "00000000000000000000000000001101", -- Instrução SW de 32 bits		= 3
+					11     => "00000000000000000000000000001100", -- Instrução LW de 32 bits		= 3
+					
+				-- Operacoes de Shift
+					12     => "00000000000000000000000000010011", -- Instrução SRL de 32 bits		= 24
+					13     => "00000000000000000000000000010010", -- Instrução SLL de 32 bits		= 0
+					14     => "00000000000000110000000000000001", -- Instrução ADDI de 32 bits		= 3
+					15     => "00000000000000000000000000010100", -- Instrução ROR de 32 bits		= 1610612736
+					16     => "00000000000000000000000000010101", -- Instrução ROL de 32 bits		= 1610612736
+					17     => "00000000000000000000000000000010", -- Instrução SUB de 32 bits		= 0			
+					18     => "00000000000000110000000000000001", -- Instrução ADDI de 32 bits		= 3				
+					19     => "00000000000000000000000000010110", -- Instrução SRA de 32 bits		= 3	
+			
+					20     => "00000001010100000000000000001110", -- Instrução JAL de 32 bits		= 22
+					21     => "00000001011000000000000000001111", -- Instrução JUMP de 32 bits		
+					22     => "00000000000000000000000000000000", -- Instrução ADD de 32 bits		= 44
+					23     => "00000000000000000000000000001001", -- Instrução BEQ de 32 bits		= 0
+					24     => "00000000000011110000000000000001", -- Instrução ADD de 32 bits		= 3
+	
+					
+					25     => "00000000000000000000000000000000", -- Instrução XORI de 32 bits
+					others => X"00000000"  
 					);
 			else
 				Instrucao <= rom(to_integer(unsigned(Endereco)));

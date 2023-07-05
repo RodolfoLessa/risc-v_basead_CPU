@@ -31,14 +31,15 @@ architecture estimulos of tb_processador_ciclo_unico is
 
 	signal clk : std_logic;
 	signal rst : std_logic;
+	signal saida: std_logic_vector(31 downto 0);
 
 	-- Definição das configurações de clock				
 	constant PERIODO    : time := 20 ns;
 	constant DUTY_CYCLE : real := 0.5;
-	constant OFFSET     : time := 0 ns;
+	constant OFFSET     : time := 5 ns;
 begin
 	-- instancia o componente 
-	instancia : processador_ciclo_unico port map(Clock => clk, Chave_reset => rst);
+	instancia : processador_ciclo_unico port map(Leds_vermelhos_saida => saida, Chave_reset => rst, Clock => clk);
 	-- processo para gerar o sinal de clock 		
 	gera_clock : process
 	begin
@@ -54,8 +55,8 @@ begin
 	gera_reset : process
 	begin
 		rst <= '1';
-		for i in 1 to 2 loop
-			wait until rising_edge(clk);
+		for i in 1 to 1 loop
+			wait until falling_edge(clk);
 		end loop;
 		rst <= '0';
 		wait;
